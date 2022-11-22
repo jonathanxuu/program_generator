@@ -30,3 +30,6 @@ The program_generator can do the following things:
 - For multi elements constraint:
   - [x] For numbers: sum/average (gt/gte/neq/lte/lt)
   - [x] For numbers: compare two elements (gt/gte/eq/lte/lt/neq)
+
+## Usage
+Run `npm start` to open the visualized interface of the Program Generator
