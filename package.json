@@ -41,6 +41,8 @@
     "@mui/material": "^5.9.0",
     "@settlemint/merkle-tools": "^1.0.7",
     "@types/react-highlight": "^0.12.5",
-    "react-highlight": "^0.14.0"
+    "react-highlight": "^0.14.0",
+    "rescue": "file:pkg",
+    "rlp": "^3.0.0"
   }
 }

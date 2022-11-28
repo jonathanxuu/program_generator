@@ -1,0 +1,19 @@
+{
+    "claim": {
+      "cTypeHash": "0x************************************************",
+      "contents": {
+        "discord_name": "zCloak",
+        "verification_code": "8dfmsi",
+        "support_team": "Brazil"
+      },
+      "owner": "did::******************************************************"
+    },
+    "nonces": [
+      "0x357d50aac640931f9976477de30b3b476be4a14ae367b045496670d7a23c457d",
+      "0xd50f5298fda74ff0b46be740e602fa5ce0bc2a48fc5ddfbbae3c0678f59b5b97",
+      "0xde121244bbf715927542ee94a87ee5f2e338093f58c71ad7f5ed25bec73d5939"
+    ],
+    "legitimations": [],
+    "delegationId": null,
+    "rootHash": "0x6a84b1171cbc0452760aaf9c1907cdd36e1c881973485f1cf61f850ce64948e8"
+  }

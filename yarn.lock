@@ -9753,6 +9753,10 @@
   "resolved" "https://registry.npmmirror.com/requires-port/-/requires-port-1.0.0.tgz"
   "version" "1.0.0"
 
+"rescue@file:pkg":
+  "resolved" "file:pkg"
+  "version" "0.1.0"
+
 "reselect@^4.0.0":
   "integrity" "sha512-ZovIuXqto7elwnxyXbBtCPo9YFEr3uJqj2rRbcOOog1bmu2Ag85M4hixSwFWyaBMKXNgvPaJ9OSu9SkBPIeJHQ=="
   "resolved" "https://registry.npmmirror.com/reselect/-/reselect-4.1.6.tgz"
@@ -9856,6 +9860,11 @@
   dependencies:
     "hash-base" "^3.0.0"
     "inherits" "^2.0.1"
+
+"rlp@^3.0.0":
+  "integrity" "sha512-PD6U2PGk6Vq2spfgiWZdomLvRGDreBLxi5jv5M8EpRo3pU6VEm31KO+HFxE18Q3vgqfDrQ9pZA3FP95rkijNKw=="
+  "resolved" "https://registry.npmjs.org/rlp/-/rlp-3.0.0.tgz"
+  "version" "3.0.0"
 
 "rollup-plugin-cleanup@^3.2.1":
   "integrity" "sha512-zuv8EhoO3TpnrU8MX8W7YxSbO4gmOR0ny06Lm3nkFfq0IVKdBUtHwhVzY1OAJyNCIAdLiyPnOrU0KnO0Fri1GQ=="

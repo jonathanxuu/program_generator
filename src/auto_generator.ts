@@ -36,7 +36,7 @@ export function auto_program_generater(leaves_number: any, constraints: any) {
       const element = constraints[key];
       let constraint_program;
       if (element.fields.length == 1) {
-        console.log("singlee", element);
+        console.log("single", element);
 
         constraint_program = handle_single_constraint(
           leaves_number,
@@ -252,7 +252,7 @@ function prepare_auth_path_and_read_to_mem(leaves_number: any, field: any, numbe
 
 // This function is used to prepare the authentication path for certain leaf, and prepare different code for different leaf
 // due to the location (right/left) of a leaf when getting into a new layer.
-function prepare_auth_path(leaves_number: any, leaf_index: any) {
+export function prepare_auth_path(leaves_number: any, leaf_index: any) {
   var treeOptions = {
     hashType: "md5",
   };
@@ -294,150 +294,150 @@ function prepare_auth_path(leaves_number: any, leaf_index: any) {
 function prepare_string_operation(operation: any, value: any) {
   var program_text;
 
-  let start_compare_text = `push.${value.charCodeAt(value.length - 1)} eq`;
-  for (let i = value.length - 2 ; i >= 0; i--) {
-      start_compare_text = `${start_compare_text} push.mem.101 and pop.mem.101 push.${value.charCodeAt(i)} eq
-      `
-  }
-  start_compare_text = `${start_compare_text} push.mem.101 and pop.mem.101 push.34 eq`
+    let start_compare_text = `push.${value.charCodeAt(value.length)} eq`;
+    for (let i = value.length - 1 ; i >= 0; i--) {
+        start_compare_text = `${start_compare_text} push.mem.101 and pop.mem.101 push.${value.charCodeAt(i)} eq
+        `
+    }
+    start_compare_text = `${start_compare_text} push.mem.101 and pop.mem.101`
 
-  let end_compare_text = `push.34 eq push.mem.101 and pop.mem.101 push.${value.charCodeAt(value.length -1)} eq`;
-  for (let i = value.length - 2 ; i >= 0; i--) {
-      end_compare_text = `${end_compare_text} push.mem.101 and pop.mem.101 push.${value.charCodeAt(i)} eq
-      `
-  }
-  end_compare_text = `${end_compare_text} push.mem.101 and pop.mem.101`
+    let end_compare_text = ` push.${value.charCodeAt(value.length)} eq`;
+    for (let i = value.length - 1 ; i >= 0; i--) {
+        end_compare_text = `${end_compare_text} push.mem.101 and pop.mem.101 push.${value.charCodeAt(i)} eq
+        `
+    }
+    end_compare_text = `${end_compare_text} push.mem.101 and pop.mem.101`
 
 
-  let dup_program = "";
-  let read_to_memory = ``;
-  let j = 0;
-  for (let i = value.length - 1; i >= 0; i--,j++) {
-      read_to_memory = `${read_to_memory}  push.${value.charCodeAt(i)} push.${j + 301} pop.mem 
-  ` 
-      dup_program = `${dup_program} dup.${value.length}`
-      ;
-  }
+    let dup_program = "";
+    let read_to_memory = ``;
+    let j = 0;
+    for (let i = value.length - 1; i >= 0; i--,j++) {
+        read_to_memory = `${read_to_memory}  push.${value.charCodeAt(i)} push.${j + 301} pop.mem 
+    ` 
+        dup_program = `${dup_program} dup.${value.length}`
+        ;
+    }
 
-  let drop_text = "";
-  for (let i = 0 ; i < value.length + 1 ; i++){
-      drop_text = `${drop_text} drop`
-  }
-  switch (operation) {
-      case "contain":
-          // 1. read advice_tape to memory, which start at 301
-          // 2. the max compare time should be `mem[99] - (value).length - 1)` should stored on the second stack.
-          // 3. the next address to be compared should stored on stack automatically.
-          // 4. mem[300] use to store the compare result(init with 0), once found a success match, mem[300] should be 1. else 0
-          // 5. mem[value.length + 301] use to store single compare result,every `while` should make it `1` 
-          program_text = `
-  push.mem.99 dup.0 push.${value.length + 2} gte 
-  if.true
-      push.0 pop.mem.300
-      sub.${value.length - 1}${read_to_memory}    dup.0 push.1 gte
-      while.true
-          push.1 pop.mem.${301 + value.length} ${dup_program}
-          push.301 
-          repeat.${value.length}
-              dup.0 push.mem dup.0 dup.2 pop.mem
-              movup.2 eq push.mem.${301 + value.length} and pop.mem.${301 + value.length}
-              add.1
-          end
-          drop sub.1 swap drop
-          push.mem.${301 + value.length} push.1 eq
-          if.true
-              push.1 pop.mem.300
-          end
-          dup.0 push.1 gte
-      end
-      push.mem.300 push.mem.101 and pop.mem.101 ${drop_text}
-  else
-      dup.0 push.1 gte 
-      while.true
-          swap drop sub.1 dup.0 push.1 gte
-      end
-      drop push.0 pop.mem.101
-  end`
-          break;
-      case "uncontain":
-          program_text = `
-  push.mem.99 dup.0 push.${value.length + 2} gte
-  if.true
-      push.1 pop.mem.300
-      sub.${value.length - 1}${read_to_memory}    dup.0 push.1 gte
-      while.true
-          push.1 pop.mem.${301 + value.length} ${dup_program}
-          push.301 
-          repeat.${value.length}
-              dup.0 push.mem dup.0 dup.2 pop.mem
-              movup.2 eq push.mem.${301 + value.length} and pop.mem.${301 + value.length}
-              add.1
-          end
-          drop sub.1 swap drop
-          push.mem.${301 + value.length} push.1 eq
-          if.true
-              push.0 pop.mem.300
-          end
-          dup.0 push.1 gte
-      end
-      push.mem.300 push.mem.101 and pop.mem.101 ${drop_text}
-  else
-      dup.0 push.1 gte 
-      while.true
-          swap drop sub.1 dup.0 push.1 gte
-      end
-      drop push.0 pop.mem.101
-  end
-          `
-          break;
-      case "start with":
-          // here, push.mem.99 needs to be longer than the value.length
-          // the first element is at the deepest of the stack.
-          program_text = `
-  push.mem.99 dup.0 push.${value.length + 2} gte 
-  if.true
-      sub.${value.length + 1}
-      dup.0 push.1 gte
-      while.true
-          swap drop sub.1 dup.0 push.1 gte
-      end
-      drop  ${start_compare_text} push.mem.101 and pop.mem.101 drop
-  else
-      dup.0 push.1 gte 
-      while.true
-          swap drop sub.1 dup.0 push.1 gte
-      end
-      drop push.0 pop.mem.101 drop
-  end`;
-          break;
-      case "end with":
-          // here, push.mem.99 needs to be longer than the value.length
-          // the last element is on the top of the stack.
+    let drop_text = "";
+    for (let i = 0 ; i < value.length + 1 ; i++){
+        drop_text = `${drop_text} drop`
+    }
+    switch (operation) {
+        case "contain":
+            // 1. read advice_tape to memory, which start at 301
+            // 2. the max compare time should be `mem[99] - (value).length - 1)` should stored on the second stack.
+            // 3. the next address to be compared should stored on stack automatically.
+            // 4. mem[300] use to store the compare result(init with 0), once found a success match, mem[300] should be 1. else 0
+            // 5. mem[value.length + 301] use to store single compare result,every `while` should make it `1` 
+            program_text = `
+    push.mem.99 dup.0 push.${value.length} gte 
+    if.true
+        push.0 pop.mem.300
+        sub.${value.length - 4}${read_to_memory}    dup.0 push.1 gte
+        while.true
+            push.1 pop.mem.${301 + value.length} ${dup_program}
+            push.301 
+            repeat.${value.length}
+                dup.0 push.mem dup.0 dup.2 pop.mem
+                movup.2 eq push.mem.${301 + value.length} and pop.mem.${301 + value.length}
+                add.1
+            end
+            drop sub.1 swap drop
+            push.mem.${301 + value.length} push.1 eq
+            if.true
+                push.1 pop.mem.300
+            end
+            dup.0 push.1 gte
+        end
+        push.mem.300 push.mem.101 and pop.mem.101 ${drop_text}
+    else
+        dup.0 push.1 gte 
+        while.true
+            swap drop sub.1 dup.0 push.1 gte
+        end
+        drop push.0 pop.mem.101
+    end`
+            break;
+        case "uncontain":
+            program_text = `
+    push.mem.99 dup.0 push.${value.length + 2} gte
+    if.true
+        push.1 pop.mem.300
+        sub.${value.length - 1}${read_to_memory}    dup.0 push.1 gte
+        while.true
+            push.1 pop.mem.${301 + value.length} ${dup_program}
+            push.301 
+            repeat.${value.length}
+                dup.0 push.mem dup.0 dup.2 pop.mem
+                movup.2 eq push.mem.${301 + value.length} and pop.mem.${301 + value.length}
+                add.1
+            end
+            drop sub.1 swap drop
+            push.mem.${301 + value.length} push.1 eq
+            if.true
+                push.0 pop.mem.300
+            end
+            dup.0 push.1 gte
+        end
+        push.mem.300 push.mem.101 and pop.mem.101 ${drop_text}
+    else
+        dup.0 push.1 gte 
+        while.true
+            swap drop sub.1 dup.0 push.1 gte
+        end
+        drop push.0 pop.mem.101
+    end
+            `
+            break;
+        case "start with":
+            // here, push.mem.99 needs to be longer than the value.length
+            // the first element is at the deepest of the stack.
+            program_text = `
+    push.mem.99 dup.0 push.${value.length + 2} gte 
+    if.true
+        sub.${value.length + 1}
+        dup.0 push.1 gte
+        while.true
+            swap drop sub.1 dup.0 push.1 gte
+        end
+        drop  ${start_compare_text} push.mem.101 and pop.mem.101 drop
+    else
+        dup.0 push.1 gte 
+        while.true
+            swap drop sub.1 dup.0 push.1 gte
+        end
+        drop push.0 pop.mem.101 drop
+    end`;
+            break;
+        case "end with":
+            // here, push.mem.99 needs to be longer than the value.length
+            // the last element is on the top of the stack.
 
-          program_text = `
-  push.mem.99 dup.0 push.${value.length + 2} gte 
-  if.true
-      pop.mem.99
-      ${end_compare_text} 
-      push.mem.99 sub.${value.length + 1}
-      dup.0 push.1 gte
-      while.true
-          swap drop sub.1 dup.0 push.1 gte
-      end
-      drop drop
-  else
-      dup.0 push.1 gte 
-      while.true
-          swap drop sub.1 dup.0 push.1 gte
-      end
-      drop push.0 pop.mem.101 drop
-  end
-          `
-          break;
-      default:
-          console.error("the string operation is wrong!!!!!")
-  }
-  return program_text;
+            program_text = `
+    push.mem.99 dup.0 push.${value.length + 2} gte 
+    if.true
+        pop.mem.99
+        ${end_compare_text} 
+        push.mem.99 sub.${value.length + 1}
+        dup.0 push.1 gte
+        while.true
+            swap drop sub.1 dup.0 push.1 gte
+        end
+        drop drop
+    else
+        dup.0 push.1 gte 
+        while.true
+            swap drop sub.1 dup.0 push.1 gte
+        end
+        drop push.0 pop.mem.101 drop
+    end
+            `
+            break;
+        default:
+            console.error("the string operation is wrong!!!!!")
+    }
+    return program_text;
 }
 
 // use to handle `Single Number Constraint`
