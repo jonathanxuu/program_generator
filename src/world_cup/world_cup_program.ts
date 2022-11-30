@@ -35,17 +35,16 @@ function handle_world_cup_constraint(top_four_teams: any) {
   return combine_program;
 }
 
+// Todo: wait to be update, can draw the origin rlp_hash with a faster way
 function prepare_membership_in_operation(team_list: any) {
   let team_rlp_hashes = compute_team_hash(team_list);
-  let compute_support_team_hash = `
-        exec.pad_and_compute_rphash
-    `;
+
   let push_all_rlp_hashes = ``;
   for (let i = 0; i < 4; i++) {
     let each_push = `push.${team_rlp_hashes[i][0]} push.${team_rlp_hashes[i][1]} push.${team_rlp_hashes[i][2]} push.${team_rlp_hashes[i][3]} eqw movdn.8 dropw `;
     push_all_rlp_hashes = `${push_all_rlp_hashes} ${each_push}`;
   }
-  return `${compute_support_team_hash} ${push_all_rlp_hashes} dropw or or or pop.mem.101`;
+  return `pushw.mem.40 ${push_all_rlp_hashes} dropw or or or pop.mem.101`;
 }
 
 function compute_team_hash(team_list: any) {

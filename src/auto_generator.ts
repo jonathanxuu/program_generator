@@ -280,7 +280,7 @@ export function prepare_auth_path(leaves_number: any, leaf_index: any) {
   }
   // mem[100] is used to store roothash, compare to the pre-roothash; If not the same, the roothash is wrong
   program_text = `
-    exec.read_new_leaf exec.read_and_copy exec.multi_rphash push.adv.4 rphash 
+    exec.read_new_leaf exec.read_and_copy exec.multi_rphash dupw popw.mem.40 push.adv.4 rphash 
     ${program_text}
     pushw.mem.100 dupw popw.mem.100 movup.4 eq swap movup.4 eq movup.2 movup.4 
     eq movup.3 movup.4 eq and and and not 

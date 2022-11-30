@@ -134,34 +134,6 @@ proc.multi_rphash
     end
 end
 
-proc.pad_and_compute_rphash
-    push.mem.99 dup.0 pop.mem.99 dup.0 push.7 lt push.1 eq
-            if.true 
-                push.1 swap
-                dup.0 push.6 lt push.1 eq
-                if.true
-                    push.6 swap u32checked_sub dup.0 push.1 gte
-                    while.true
-                        push.0 swap sub.1 dup.0 push.1 gte
-                    end
-                    drop
-                else 
-                    drop
-                end
-            else
-                u32checked_mod.4 dup.0 push.3 eq
-                if.true
-                    drop 
-                else
-                    push.1 swap push.2 swap u32checked_sub dup.0 push.1 gte 
-                    while.true
-                            push.0 swap sub.1 dup.0 push.1 gte
-                    end
-                    drop
-                end
-            end
-            exec.multi_rphash
-end
 
 begin 
     push.1 pop.mem.101 push.adv.4 popw.mem.100`;
