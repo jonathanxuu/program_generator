@@ -24,7 +24,7 @@ let demo_constraints = [
   // },
   {
     fields: [2],   // 第一个字段 ： nation code
-    operation: ["membership_out"],    // 判断 nation code 是否是欧盟之一
+    operation: ["membership_in"],    // 判断 nation code 是否是欧盟之一
     value: [40, 56, 100, 196, 203, 276, 208, 724, 233, 246, 250, 300, 191, 348, 372, 380, 440, 442, 428, 470, 528, 616, 642, 703, 705, 752], // 欧盟成员国的国家代码
   }
 ];
