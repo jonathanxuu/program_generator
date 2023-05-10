@@ -21,7 +21,6 @@ let demo_constraints = [
 ];
 
 var whole_program = `
-use.std::sys 
 proc.number_add.4
     dup.0 pop.local.0 push.0 eq 
     if.true  
@@ -179,7 +178,6 @@ function auto_program_generater(leaves_number, constraints) {
     whole_program = `
 ${whole_program}  
     pushw.mem.100 push.mem.101
-    exec.sys::finalize_stack
 end`
     console.log(whole_program)
     return whole_program;

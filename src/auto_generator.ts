@@ -4,7 +4,7 @@ var merkle_tools_1 = require("@settlemint/merkle-tools");
 
 // some usage of mem: mem[100] used to store roothash
 // mem[101] use to store the constraints assertion results, should perform 'and' every time;
-// todo1: should set mem[101] to 1 at the beginning of the whole program, `push.mem.101 and  pop.mem.101` then.
+// todo1: should set mem[101] to 1 at the beginning of the whole program, `mem_load.101 and  mem_store.101` then.
 // todo2: the roothash should be pushw.mem.100 at the beginning of the whole program as well, used to make sure
 //       each auth-path leads to an 'identical' roothash.
 // todo3: each roothash which is generated via auth-path should compare with the 'initial roothash' which is stored into at the beginning
@@ -12,48 +12,45 @@ var merkle_tools_1 = require("@settlemint/merkle-tools");
 // as to each leaf ：
 // exec.read_new_leaf exec.read_and_copy exec.multi_rphash loadw.adv(import uuid) rphash （generate saltedhash）
 
-// before handling each leaf should `push.mem.99` first
-// push.mem.99 exec.number_add （push.23 gt）push.mem.101 and pop.mem.101
+// before handling each leaf should `mem_load.99` first
+// mem_load.99 exec.number_add （push.23 gt）mem_load.101 and mem_store.101
 
 
 let demo_constraints = [
+  // {
+  //   fields: [1],   // 第一个字段 ： birth 的时间戳
+  //   operation: ["lt"],    // 判断 birth 对应的时间 早于 2005 年 1 月 1 日
+  //   value: 1104508800, // 2005 年 1 月 1 日 的时间戳 
+  // },
   {
-    fields: [1, 2, 3],
-    operation: ["sum", "gt"],
-    value: 20.2,
-  },
-  {
-    fields: [0],
-    operation: ["gt"],
-    value: 19,
-  },
+    fields: [2],   // 第一个字段 ： nation code
+    operation: ["membership_out"],    // 判断 nation code 是否是欧盟之一
+    value: [40, 56, 100, 196, 203, 276, 208, 724, 233, 246, 250, 300, 191, 348, 372, 380, 440, 442, 428, 470, 528, 616, 642, 703, 705, 752], // 欧盟成员国的国家代码
+  }
 ];
 
-export function auto_program_generater(leaves_number: any, constraints: any) {
+
+console.log(auto_program_generater(4, demo_constraints))
+function auto_program_generater(leaves_number: any, constraints: any) {
   let whole_program = program;
   for (const key in constraints) {
     if (Object.hasOwnProperty.call(constraints, key)) {
       const element = constraints[key];
       let constraint_program;
-      if (element.fields.length == 1) {
-        console.log("single", element);
 
-        constraint_program = handle_single_constraint(
-          leaves_number,
-          element.fields[0],
-          element.operation[0],
-          element.value
-        );
-      } else {
-        constraint_program = handle_multi_constraint(leaves_number, element.fields, element.operation, element.value);
-      }
+      constraint_program = handle_single_constraint(
+        leaves_number,
+        element.fields[0],
+        element.operation[0],
+        element.value
+      );
+
       whole_program = `${whole_program} ${constraint_program}`;
     }
   }
   whole_program = `
 ${whole_program}  
-    pushw.mem.100 push.mem.101
-    exec.sys::finalize_stack
+    mem_load.101 padw mem_loadw.100
 end`;
   return whole_program;
 }
@@ -72,15 +69,15 @@ function handle_single_constraint(leaves_number: any, fields: any, operation: an
       break;
     case "object":
       {
-        if (operation == "membership_in"){
-            constraint_program = prepare_membership_in_operation(value);
-        }else if (operation == "membership_out"){
-            constraint_program = preprare_membership_out_operation(value);
-        }else{
-            throw new Error("The operation for object value is wrong!");
+        if (operation == "membership_in") {
+          constraint_program = prepare_membership_in_operation(value);
+        } else if (operation == "membership_out") {
+          constraint_program = preprare_membership_out_operation(value);
+        } else {
+          throw new Error("The operation for object value is wrong!");
         }
       }
-        break;
+      break;
     default:
       throw new Error("wait to add more data type.....");
   }
@@ -90,13 +87,13 @@ function handle_single_constraint(leaves_number: any, fields: any, operation: an
 
 function prepare_membership_in_operation(
   value: any
-){
+) {
 
   let constraint_program = "";
   let push_program = "";
-  let read_number = "push.mem.99 exec.number_add "
-  for (let i = 0; i < value.length; i++){
-      push_program = `${push_program}push.${value[i]} swap `;
+  let read_number = "mem_load.99 exec.number_add "
+  for (let i = 0; i < value.length; i++) {
+    push_program = `${push_program}push.${value[i]} swap `;
   }
   let check_in_program = `
   push.0 
@@ -107,9 +104,9 @@ function prepare_membership_in_operation(
       end
   end
   if.true
-      push.mem.101 push.1 and pop.mem.101
+      mem_load.101 push.1 and mem_store.101
   else
-      push.0 pop.mem.101
+      push.0 mem_store.101
   end
   drop
   `
@@ -119,12 +116,12 @@ function prepare_membership_in_operation(
 
 function preprare_membership_out_operation(
   value: any
-){
+) {
   let constraint_program = "";
   let push_program = "";
-  let read_number = "push.mem.99 exec.number_add "
-  for (let i = 0; i < value.length; i++){
-      push_program = `${push_program}push.${value[i]} swap `;
+  let read_number = "mem_load.99 exec.number_add "
+  for (let i = 0; i < value.length; i++) {
+    push_program = `${push_program}push.${value[i]} swap `;
   }
   let check_out_program = `
   push.0 
@@ -135,9 +132,9 @@ function preprare_membership_out_operation(
       end
   end
   if.true
-      push.0 pop.mem.101
+      push.0 mem_store.101
   else
-      push.1 push.mem.101 and pop.mem.101
+      push.1 mem_load.101 and mem_store.101
   end
   drop
   `
@@ -147,112 +144,16 @@ function preprare_membership_out_operation(
 }
 
 
-// field element -- do auth path，put different number into different mem, start with 301, if big-small compare(301,302), or(301-303)
-function handle_multi_constraint(leaves_number: any, fields: any, operation: any, value: any) {
-  let combine_multi_program = "";
-  let auth_read_multi_program = "";
-  for (let i = 0; i < fields.length; i++) {
-    auth_read_multi_program = prepare_auth_path_and_read_to_mem(leaves_number, fields[i], i);
-    combine_multi_program = `${combine_multi_program} ${auth_read_multi_program}`;
-  }
-  switch (operation[0]) {
-    case "sum":
-      {
-        for (let i = 0; i < fields.length; i++) {
-          combine_multi_program = `${combine_multi_program} push.mem.${301 + i}`;
-        }
-        let decimal = value.toString().split(".").length - 1;
-        if (decimal > 1) throw new Error("decimal value has more than 1 digits!");
-        if (decimal == 0) {
-          combine_multi_program = `
-          ${combine_multi_program} 
-  repeat.${fields.length - 1} 
-      add 
-  end
-  push.${value} ${operation[1]} push.mem.101 and pop.mem.101
-  `;
-        } else {
-          combine_multi_program = `
-              ${combine_multi_program} 
-  repeat.${fields.length - 1} 
-      add 
-  end
-  mul.10
-  push.${value * 10} ${operation[1]} push.mem.101 and pop.mem.101
-`;
-        }
-      }
-      break;
-    case "average":
-      {
-        for (let i = 0; i < fields.length; i++) {
-          combine_multi_program = `${combine_multi_program} push.mem.${301 + i}`;
-        }
-        let decimal = value.toString().split(".").length - 1;
-        if (decimal > 1) throw new Error("decimal value has more than 1 digits!");
-        if (decimal == 0) {
-          combine_multi_program = `
-              ${combine_multi_program}
-          repeat.${fields.length - 1}
-              add
-          end
-          push.${value * fields.length} ${operation[1]} push.mem.101 and pop.mem.101  
-          `;
-        } else {
-          combine_multi_program = `
-              ${combine_multi_program}
-  repeat.${fields.length - 1}
-      add
-  end
-  mul.10
-  push.${value * 10 * fields.length} ${operation[1]} push.mem.101 and pop.mem.101
-          `;
-        }
-      }
-      break;
-    case "gt":{
-        combine_multi_program = `${combine_multi_program} push.mem.301 push.mem.302 gt push.mem.101 and pop.mem.101 `
-    };
-    break;
-
-    case "gte":{
-        combine_multi_program = `${combine_multi_program} push.mem.301 push.mem.302 gte push.mem.101 and pop.mem.101 `
-
-    };
-    break;
-
-    case "neq":{
-        combine_multi_program = `${combine_multi_program} push.mem.301 push.mem.302 neq push.mem.101 and pop.mem.101 `
-
-    };
-    break;
-    case "lte":{
-        combine_multi_program = `${combine_multi_program} push.mem.301 push.mem.302 lte push.mem.101 and pop.mem.101 `
-
-    };
-    break;
-    case "lt":{
-        combine_multi_program = `${combine_multi_program} push.mem.301 push.mem.302 lt push.mem.101 and pop.mem.101 `
-    }break;  
-    case "eq":{
-        combine_multi_program = `${combine_multi_program} push.mem.301 push.mem.302 eq push.mem.101 and pop.mem.101 `
-    }break;   
-    default:
-      return console.error("error multi constraint!");
-  }
-  return combine_multi_program;
-}
-
-// used to compare auth-proc for each leaf, push that into mem[301-303]
-function prepare_auth_path_and_read_to_mem(leaves_number: any, field: any, number_to_save: any) {
-  let auth_program = prepare_auth_path(leaves_number, field);
-  return `${auth_program} 
-    push.mem.99 exec.number_add pop.mem.${301 + number_to_save}`;
-}
+// // used to compare auth-proc for each leaf, push that into mem[301-303]
+// function prepare_auth_path_and_read_to_mem(leaves_number: any, field: any, number_to_save: any) {
+//   let auth_program = prepare_auth_path(leaves_number, field);
+//   return `${auth_program} 
+//     mem_load.99 exec.number_add mem_store.${301 + number_to_save}`;
+// }
 
 // This function is used to prepare the authentication path for certain leaf, and prepare different code for different leaf
 // due to the location (right/left) of a leaf when getting into a new layer.
-export function prepare_auth_path(leaves_number: any, leaf_index: any) {
+function prepare_auth_path(leaves_number: any, leaf_index: any) {
   var treeOptions = {
     hashType: "md5",
   };
@@ -272,154 +173,155 @@ export function prepare_auth_path(leaves_number: any, leaf_index: any) {
     if (Object.hasOwnProperty.call(need_aux_position, key)) {
       const element = need_aux_position[key];
       if (element == "left") {
-        program_text = program_text + "push.adv.4" + " swapw rphash ";
+        program_text = program_text + "adv_push.4" + " swapw hmerge ";
       } else {
-        program_text = program_text + "push.adv.4" + " rphash ";
+        program_text = program_text + "adv_push.4" + " hmerge ";
       }
     }
   }
   // mem[100] is used to store roothash, compare to the pre-roothash; If not the same, the roothash is wrong
   program_text = `
-    exec.read_new_leaf exec.read_and_copy exec.multi_rphash dupw popw.mem.40 push.adv.4 rphash 
+    exec.read_new_leaf exec.read_and_copy exec.multi_rphash dupw mem_storew.40 dropw adv_push.4 hmerge 
     ${program_text}
-    pushw.mem.100 dupw popw.mem.100 movup.4 eq swap movup.4 eq movup.2 movup.4 
+    padw mem_loadw.100 dupw mem_storew.100 dropw movup.4 eq swap movup.4 eq movup.2 movup.4 
     eq movup.3 movup.4 eq and and and not 
     if.true 
-        padw popw.mem.100 
+        padw mem_storew.100 dropw
     end `;
   return program_text;
 }
 
-// use to handle `Single String Constraint`
+// use to handle `Single String Constraint` 
+// todo
 function prepare_string_operation(operation: any, value: any) {
   var program_text;
 
-    let start_compare_text = `push.${value.charCodeAt(value.length)} eq`;
-    for (let i = value.length - 1 ; i >= 0; i--) {
-        start_compare_text = `${start_compare_text} push.mem.101 and pop.mem.101 push.${value.charCodeAt(i)} eq
+  let start_compare_text = `push.${value.charCodeAt(value.length)} eq`;
+  for (let i = value.length - 1; i >= 0; i--) {
+    start_compare_text = `${start_compare_text} mem_load.101 and mem_store.101 push.${value.charCodeAt(i)} eq
         `
-    }
-    start_compare_text = `${start_compare_text} push.mem.101 and pop.mem.101`
+  }
+  start_compare_text = `${start_compare_text} mem_load.101 and mem_store.101`
 
-    let end_compare_text = ` push.${value.charCodeAt(value.length)} eq`;
-    for (let i = value.length - 1 ; i >= 0; i--) {
-        end_compare_text = `${end_compare_text} push.mem.101 and pop.mem.101 push.${value.charCodeAt(i)} eq
+  let end_compare_text = ` push.${value.charCodeAt(value.length)} eq`;
+  for (let i = value.length - 1; i >= 0; i--) {
+    end_compare_text = `${end_compare_text} mem_load.101 and mem_store.101 push.${value.charCodeAt(i)} eq
         `
-    }
-    end_compare_text = `${end_compare_text} push.mem.101 and pop.mem.101`
+  }
+  end_compare_text = `${end_compare_text} mem_load.101 and mem_store.101`
 
 
-    let dup_program = "";
-    let read_to_memory = ``;
-    let j = 0;
-    for (let i = value.length - 1; i >= 0; i--,j++) {
-        read_to_memory = `${read_to_memory}  push.${value.charCodeAt(i)} push.${j + 301} pop.mem 
-    ` 
-        dup_program = `${dup_program} dup.${value.length}`
-        ;
-    }
+  let dup_program = "";
+  let read_to_memory = ``;
+  let j = 0;
+  for (let i = value.length - 1; i >= 0; i--, j++) {
+    read_to_memory = `${read_to_memory}  push.${value.charCodeAt(i)} push.${j + 301} mem_store 
+    `
+    dup_program = `${dup_program} dup.${value.length}`
+      ;
+  }
 
-    let drop_text = "";
-    for (let i = 0 ; i < value.length + 1 ; i++){
-        drop_text = `${drop_text} drop`
-    }
-    switch (operation) {
-        case "contain":
-            // 1. read advice_tape to memory, which start at 301
-            // 2. the max compare time should be `mem[99] - (value).length - 1)` should stored on the second stack.
-            // 3. the next address to be compared should stored on stack automatically.
-            // 4. mem[300] use to store the compare result(init with 0), once found a success match, mem[300] should be 1. else 0
-            // 5. mem[value.length + 301] use to store single compare result,every `while` should make it `1` 
-            program_text = `
-    push.mem.99 dup.0 push.${value.length} gte 
+  let drop_text = "";
+  for (let i = 0; i < value.length + 1; i++) {
+    drop_text = `${drop_text} drop`
+  }
+  switch (operation) {
+    case "contain":
+      // 1. read advice_tape to memory, which start at 301
+      // 2. the max compare time should be `mem[99] - (value).length - 1)` should stored on the second stack.
+      // 3. the next address to be compared should stored on stack automatically.
+      // 4. mem[300] use to store the compare result(init with 0), once found a success match, mem[300] should be 1. else 0
+      // 5. mem[value.length + 301] use to store single compare result,every `while` should make it `1` 
+      program_text = `
+    mem_load.99 dup.0 push.${value.length} gte 
     if.true
-        push.0 pop.mem.300
+        push.0 mem_store.300
         sub.${value.length - 4}${read_to_memory}    dup.0 push.1 gte
         while.true
-            push.1 pop.mem.${301 + value.length} ${dup_program}
+            push.1 mem_store.${301 + value.length} ${dup_program}
             push.301 
             repeat.${value.length}
-                dup.0 push.mem dup.0 dup.2 pop.mem
-                movup.2 eq push.mem.${301 + value.length} and pop.mem.${301 + value.length}
+                dup.0 mem_load dup.0 dup.2 mem_store
+                movup.2 eq mem_load.${301 + value.length} and mem_store.${301 + value.length}
                 add.1
             end
             drop sub.1 swap drop
-            push.mem.${301 + value.length} push.1 eq
+            mem_load.${301 + value.length} push.1 eq
             if.true
-                push.1 pop.mem.300
+                push.1 mem_store.300
             end
             dup.0 push.1 gte
         end
-        push.mem.300 push.mem.101 and pop.mem.101 ${drop_text}
+        mem_load.300 mem_load.101 and mem_store.101 ${drop_text}
     else
         dup.0 push.1 gte 
         while.true
             swap drop sub.1 dup.0 push.1 gte
         end
-        drop push.0 pop.mem.101
+        drop push.0 mem_store.101
     end`
-            break;
-        case "uncontain":
-            program_text = `
-    push.mem.99 dup.0 push.${value.length + 2} gte
+      break;
+    case "uncontain":
+      program_text = `
+    mem_load.99 dup.0 push.${value.length + 2} gte
     if.true
-        push.1 pop.mem.300
+        push.1 mem_store.300
         sub.${value.length - 1}${read_to_memory}    dup.0 push.1 gte
         while.true
-            push.1 pop.mem.${301 + value.length} ${dup_program}
+            push.1 mem_store.${301 + value.length} ${dup_program}
             push.301 
             repeat.${value.length}
-                dup.0 push.mem dup.0 dup.2 pop.mem
-                movup.2 eq push.mem.${301 + value.length} and pop.mem.${301 + value.length}
+                dup.0 mem_load dup.0 dup.2 mem_store
+                movup.2 eq mem_load.${301 + value.length} and mem_store.${301 + value.length}
                 add.1
             end
             drop sub.1 swap drop
-            push.mem.${301 + value.length} push.1 eq
+            mem_load.${301 + value.length} push.1 eq
             if.true
-                push.0 pop.mem.300
+                push.0 mem_store.300
             end
             dup.0 push.1 gte
         end
-        push.mem.300 push.mem.101 and pop.mem.101 ${drop_text}
+        mem_load.300 mem_load.101 and mem_store.101 ${drop_text}
     else
         dup.0 push.1 gte 
         while.true
             swap drop sub.1 dup.0 push.1 gte
         end
-        drop push.0 pop.mem.101
+        drop push.0 mem_store.101
     end
             `
-            break;
-        case "start with":
-            // here, push.mem.99 needs to be longer than the value.length
-            // the first element is at the deepest of the stack.
-            program_text = `
-    push.mem.99 dup.0 push.${value.length + 2} gte 
+      break;
+    case "start with":
+      // here, mem_load.99 needs to be longer than the value.length
+      // the first element is at the deepest of the stack.
+      program_text = `
+    mem_load.99 dup.0 push.${value.length + 2} gte 
     if.true
         sub.${value.length + 1}
         dup.0 push.1 gte
         while.true
             swap drop sub.1 dup.0 push.1 gte
         end
-        drop  ${start_compare_text} push.mem.101 and pop.mem.101 drop
+        drop  ${start_compare_text} mem_load.101 and mem_store.101 drop
     else
         dup.0 push.1 gte 
         while.true
             swap drop sub.1 dup.0 push.1 gte
         end
-        drop push.0 pop.mem.101 drop
+        drop push.0 mem_store.101 drop
     end`;
-            break;
-        case "end with":
-            // here, push.mem.99 needs to be longer than the value.length
-            // the last element is on the top of the stack.
+      break;
+    case "end with":
+      // here, mem_load.99 needs to be longer than the value.length
+      // the last element is on the top of the stack.
 
-            program_text = `
-    push.mem.99 dup.0 push.${value.length + 2} gte 
+      program_text = `
+    mem_load.99 dup.0 push.${value.length + 2} gte 
     if.true
-        pop.mem.99
+        mem_store.99
         ${end_compare_text} 
-        push.mem.99 sub.${value.length + 1}
+        mem_load.99 sub.${value.length + 1}
         dup.0 push.1 gte
         while.true
             swap drop sub.1 dup.0 push.1 gte
@@ -430,14 +332,14 @@ function prepare_string_operation(operation: any, value: any) {
         while.true
             swap drop sub.1 dup.0 push.1 gte
         end
-        drop push.0 pop.mem.101 drop
+        drop push.0 mem_store.101 drop
     end
             `
-            break;
-        default:
-            console.error("the string operation is wrong!!!!!")
-    }
-    return program_text;
+      break;
+    default:
+      console.error("the string operation is wrong!!!!!")
+  }
+  return program_text;
 }
 
 // use to handle `Single Number Constraint`
@@ -466,6 +368,6 @@ function prepare_number_operation_single(operation: any, value: any) {
       throw new Error("error number compare operation!");
   }
   program_text = `
-    push.mem.99 exec.number_add mul.${multi} ${program_text} push.mem.101 and pop.mem.101`;
+  mem_load.99 exec.number_add mul.${multi} ${program_text} mem_load.101 and mem_store.101`;
   return program_text;
 }
